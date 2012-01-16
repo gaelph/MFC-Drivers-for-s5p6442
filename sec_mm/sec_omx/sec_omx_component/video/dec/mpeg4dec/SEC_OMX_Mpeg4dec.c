@@ -1137,36 +1137,43 @@ OMX_ERRORTYPE SEC_MFC_Mpeg4_Decode(OMX_COMPONENTTYPE *pOMXComponent, SEC_OMX_DAT
              We have to do the cropping by software
              */
             
-            int bufCopySize = outputInfo.buf_width * outputInfo.buf_height;
-            
             // If there is no cropping to do
-            if ((outputInfo.crop_top_offset == 0) && (outputInfo.crop_bottom_offset == 0) && (outputInfo.crop_left_offset == 0) && (outputInfo.crop_right_offset == 0)) {
+            if (((outputInfo.img_height - outputInfo.buf_height) == 0) && ((outputInfo.img_width - outputInfo.buf_width) == 0)) {
                 SEC_OSAL_Memcpy(pOutBuf, (void *)outputInfo.YVirAddr, (frameSize * 3) / 2);
             } else  { // We crop each Plane separatly, so we can do all sides at once.
-                void * YPlane = outputInfo.YVirAddr;
-                void * CrPlane = outputInfo.YVirAddr + bufCopySize;
-                void * CbPlane = CrPlane + (bufCopySize / 4);
-                int count = 0;
+                void * YPlane  = outputInfo.YVirAddr;
+                int    YSize   = outputInfo.buf_width * outputInfo.buf_height;
+                int    CSize   = (((YSize + 3) & (~3)) / 4);
+                void * CrPlane = outputInfo.YVirAddr + YSize;
+                void * CbPlane = CrPlane + CSize;
+                
+                int c_crop_top = outputInfo.crop_top_offset / 2;
+                int c_img_height = (bufHeight + outputInfo.crop_bottom_offset) / 2;
+                int c_img_width = ((bufWidth + 1) & (~1)) / 2;
+                int c_buf_width = ((outputInfo.buf_width + 1) & (~1)) / 2;
+                int c_buf_size = ((frameSize + 3) & (~3)) / 4;
+                
+                int line = 0;
                 
                 // Copy the Y channel
-                for (count = outputInfo.crop_top_offset; count < (bufHeight + outputInfo.crop_top_offset); count ++) {
-                    int srcOffset = outputInfo.buf_width * count;
-                    int dstOffset = bufWidth * count;
+                for (line = outputInfo.crop_top_offset; line < (bufHeight + outputInfo.crop_top_offset); line ++) {
+                    int srcOffset = outputInfo.buf_width * line;
+                    int dstOffset = bufWidth * line;
                     SEC_OSAL_Memcpy(pOutBuf + dstOffset, (void *)YPlane + srcOffset, bufWidth);
                 }
                 
                 // Copy the Cr channel
-                for (count = (outputInfo.crop_top_offset / 4); count < ((bufHeight + outputInfo.crop_top_offset)); count ++) {
-                    int srcOffset = (outputInfo.buf_width / 4 ) * count;
-                    int dstOffset = frameSize + ((bufWidth / 4) * count);
-                    SEC_OSAL_Memcpy(pOutBuf + dstOffset, (void *)CrPlane + srcOffset, bufWidth / 4);
+                for (line = c_crop_top; line < c_img_height; line ++) {
+                    int srcOffset = c_buf_width * line;
+                    int dstOffset = frameSize + c_img_width * line;
+                    SEC_OSAL_Memcpy(pOutBuf + dstOffset, (void *)CrPlane + srcOffset, c_img_width);
                 }
                 
                 // Copy the Cb channel
-                for (count = (outputInfo.crop_top_offset / 4); count < ((bufHeight + outputInfo.crop_top_offset)); count ++) {
-                    int srcOffset = (outputInfo.buf_width /4 ) * count;
-                    int dstOffset = frameSize + (frameSize / 4) + ((bufWidth / 4) * count);
-                    SEC_OSAL_Memcpy(pOutBuf + dstOffset, (void *)CbPlane + srcOffset, bufWidth / 4);
+                for (line = c_crop_top; line < c_img_height; line ++) {
+                    int srcOffset = c_buf_width * line;;
+                    int dstOffset = frameSize + c_buf_size + c_img_width * line;
+                    SEC_OSAL_Memcpy(pOutBuf + dstOffset, (void *)CbPlane + srcOffset, c_img_width);
                 }
             }
             
