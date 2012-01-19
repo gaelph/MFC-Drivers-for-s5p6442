@@ -217,7 +217,7 @@ SSBSIP_MFC_ERROR_CODE SsbSipMfcDecExe(void *openHandle, int lengthBufFill)
 
     switch (pCTX->decoder) {
         case MPEG4_DEC:
-        case H263_ENC:
+        case H263_DEC:
             ioctl_cmd = IOCTL_MFC_MPEG4_DEC_EXE;
             break;
             
