@@ -1121,7 +1121,7 @@ OMX_ERRORTYPE SEC_MFC_Mpeg4_Decode(OMX_COMPONENTTYPE *pOMXComponent, SEC_OMX_DAT
     if (pOutputData->dataLen > 0)
     {
         int frameSize = bufWidth * bufHeight;
-        void *pOutBuf = (void *)pOutputData->dataBuffer;
+        void *pOutputBuf = (void *)pOutputData->dataBuffer;
 
 #ifdef USE_SAMSUNG_COLORFORMAT
         SEC_OMX_BASEPORT *pSECOutputPort = &pSECComponent->pSECPort[OUTPUT_PORT_INDEX];
@@ -1133,14 +1133,13 @@ OMX_ERRORTYPE SEC_MFC_Mpeg4_Decode(OMX_COMPONENTTYPE *pOMXComponent, SEC_OMX_DAT
         if (pMpeg4Dec->hMFCMpeg4Handle.bThumbnailMode == OMX_FALSE)
 #endif
         {
+#ifndef USE_NO_COPY
             /* Added by Le Bidou --- For Sofware rendering
-             We have to do the cropping by software
-             */
+             We have to do the cropping by software */
+             
             
-            // If there is no cropping to do
-            if (((outputInfo.img_height - outputInfo.buf_height) == 0) && ((outputInfo.img_width - outputInfo.buf_width) == 0)) {
-                SEC_OSAL_Memcpy(pOutBuf, (void *)outputInfo.YVirAddr, (frameSize * 3) / 2);
-            } else  { // We crop each Plane separatly, so we can do all sides at once.
+            // If there is some cropping to do
+            if (((outputInfo.img_height - outputInfo.buf_height) != 0) || ((outputInfo.img_width - outputInfo.buf_width) != 0)) { 
                 void * YPlane  = outputInfo.YVirAddr;
                 int    YSize   = outputInfo.buf_width * outputInfo.buf_height;
                 int    CSize   = (((YSize + 3) & (~3)) / 4);
@@ -1159,38 +1158,41 @@ OMX_ERRORTYPE SEC_MFC_Mpeg4_Decode(OMX_COMPONENTTYPE *pOMXComponent, SEC_OMX_DAT
                 for (line = outputInfo.crop_top_offset; line < (bufHeight + outputInfo.crop_top_offset); line ++) {
                     int srcOffset = outputInfo.buf_width * line;
                     int dstOffset = bufWidth * line;
-                    SEC_OSAL_Memcpy(pOutBuf + dstOffset, (void *)YPlane + srcOffset, bufWidth);
+                    SEC_OSAL_Memcpy(YPlane + dstOffset, (void *)YPlane + srcOffset, bufWidth);
                 }
                 
                 // Copy the Cr channel
                 for (line = c_crop_top; line < c_img_height; line ++) {
                     int srcOffset = c_buf_width * line;
                     int dstOffset = frameSize + c_img_width * line;
-                    SEC_OSAL_Memcpy(pOutBuf + dstOffset, (void *)CrPlane + srcOffset, c_img_width);
+                    SEC_OSAL_Memcpy(YPlane + dstOffset, (void *)CrPlane + srcOffset, c_img_width);
                 }
                 
                 // Copy the Cb channel
                 for (line = c_crop_top; line < c_img_height; line ++) {
                     int srcOffset = c_buf_width * line;;
                     int dstOffset = frameSize + c_buf_size + c_img_width * line;
-                    SEC_OSAL_Memcpy(pOutBuf + dstOffset, (void *)CbPlane + srcOffset, c_img_width);
+                    SEC_OSAL_Memcpy(YPlane + dstOffset, (void *)CbPlane + srcOffset, c_img_width);
                 }
             }
             
-            /* if use Post copy address structure *
+#else
+            
+            /* if use Post copy address structure */
             SEC_OSAL_Memcpy(pOutputBuf, &frameSize, sizeof(frameSize));
             SEC_OSAL_Memcpy(pOutputBuf + sizeof(frameSize), &(outputInfo.YPhyAddr), sizeof(outputInfo.YPhyAddr));
             SEC_OSAL_Memcpy(pOutputBuf + sizeof(frameSize) + (sizeof(void *) * 1), &(outputInfo.CPhyAddr), sizeof(outputInfo.CPhyAddr));
             SEC_OSAL_Memcpy(pOutputBuf + sizeof(frameSize) + (sizeof(void *) * 2), &(outputInfo.YVirAddr), sizeof(outputInfo.YVirAddr));
-            SEC_OSAL_Memcpy(pOutputBuf + sizeof(frameSize) + (sizeof(void *) * 3), &(outputInfo.CVirAddr), sizeof(outputInfo.CVirAddr));*/
+            SEC_OSAL_Memcpy(pOutputBuf + sizeof(frameSize) + (sizeof(void *) * 3), &(outputInfo.CVirAddr), sizeof(outputInfo.CVirAddr));
+#endif
         } else {
             SEC_OSAL_Log(SEC_LOG_TRACE, "YUV420 out for ThumbnailMode");
             Y_tile_to_linear_4x2(
-                    (unsigned char *)pOutBuf,
+                    (unsigned char *)pOutputBuf,
                     (unsigned char *)outputInfo.YVirAddr,
                     bufWidth, bufHeight);
             CbCr_tile_to_linear_4x2(
-                    ((unsigned char *)pOutBuf) + frameSize,
+                    ((unsigned char *)pOutputBuf) + frameSize,
                     (unsigned char *)outputInfo.CVirAddr,
                     bufWidth, bufHeight);
         }

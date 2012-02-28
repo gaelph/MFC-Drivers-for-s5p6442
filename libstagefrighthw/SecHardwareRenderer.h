@@ -27,6 +27,8 @@
 #include <binder/MemoryHeapBase.h>
 #include <binder/MemoryHeapPmem.h>
 
+class FIMC;
+
 namespace android {
 
 class ISurface;
@@ -58,6 +60,9 @@ private:
     status_t mInitCheck;
     size_t mFrameSize;
     sp<Overlay> mOverlay;
+    FIMC *mFIMC;
+    sp<MemoryHeapBase> mVideoHeap;
+    sp<MemoryHeapPmem> mRenderPmem;
     sp<MemoryHeapBase> mMemoryHeap;
     Vector<void *> mOverlayAddresses;
     bool mIsFirstFrame;

@@ -977,14 +977,13 @@ OMX_ERRORTYPE SEC_MFC_H264_Decode(OMX_COMPONENTTYPE *pOMXComponent, SEC_OMX_DATA
         if (pH264Dec->hMFCH264Handle.bThumbnailMode == OMX_FALSE)
 #endif
         {
+#ifndef USE_NO_COPY
             /* Added by Le Bidou --- For Sofware rendering
-               We have to do the cropping by software
-             */
+             We have to do the cropping by software */
+#pragma message "Using Sofware rendering"
             
-            // If there is no cropping to do
-            if ((outputInfo.crop_top_offset == 0) && (outputInfo.crop_bottom_offset == 0) && (outputInfo.crop_left_offset == 0) && (outputInfo.crop_right_offset == 0)) {
-                SEC_OSAL_Memcpy(pOutBuf, (void *)outputInfo.YVirAddr, (frameSize * 3) / 2);
-            } else  { // We crop each Plane separatly, so we can do all sides at once.
+            // If there is some cropping to do
+            if ((outputInfo.crop_top_offset != 0) || (outputInfo.crop_bottom_offset != 0) || (outputInfo.crop_left_offset != 0) || (outputInfo.crop_right_offset != 0)) {
                 void * YPlane  = outputInfo.YVirAddr;
                 int    YSize   = outputInfo.buf_width * outputInfo.buf_height;
                 int    CSize   = (((YSize + 3) & (~3)) / 4);
@@ -1003,30 +1002,32 @@ OMX_ERRORTYPE SEC_MFC_H264_Decode(OMX_COMPONENTTYPE *pOMXComponent, SEC_OMX_DATA
                 for (line = outputInfo.crop_top_offset; line < (bufHeight + outputInfo.crop_top_offset); line ++) {
                     int srcOffset = outputInfo.buf_width * line;
                     int dstOffset = bufWidth * line;
-                    SEC_OSAL_Memcpy(pOutBuf + dstOffset, (void *)YPlane + srcOffset, bufWidth);
+                    SEC_OSAL_Memcpy(YPlane + dstOffset, (void *)YPlane + srcOffset, bufWidth);
                 }
                 
                 // Copy the Cr channel
                 for (line = c_crop_top; line < c_img_height; line ++) {
                     int srcOffset = c_buf_width * line;
                     int dstOffset = frameSize + c_img_width * line;
-                    SEC_OSAL_Memcpy(pOutBuf + dstOffset, (void *)CrPlane + srcOffset, c_img_width);
+                    SEC_OSAL_Memcpy(YPlane + dstOffset, (void *)CrPlane + srcOffset, c_img_width);
                 }
                 
                 // Copy the Cb channel
                 for (line = c_crop_top; line < c_img_height; line ++) {
                     int srcOffset = c_buf_width * line;;
                     int dstOffset = frameSize + c_buf_size + c_img_width * line;
-                    SEC_OSAL_Memcpy(pOutBuf + dstOffset, (void *)CbPlane + srcOffset, c_img_width);
+                    SEC_OSAL_Memcpy(YPlane + dstOffset, (void *)CbPlane + srcOffset, c_img_width);
                 }
             }
+#else
             
-            /* if use Post copy address structure 
+            /* if use Post copy address structure */
              SEC_OSAL_Memcpy(pOutBuf, &frameSize, sizeof(frameSize));
              SEC_OSAL_Memcpy(pOutBuf + sizeof(frameSize), &(outputInfo.YPhyAddr), sizeof(outputInfo.YPhyAddr));
              SEC_OSAL_Memcpy(pOutBuf + sizeof(frameSize) + (sizeof(void *) * 1), &(outputInfo.CPhyAddr), sizeof(outputInfo.CPhyAddr));
              SEC_OSAL_Memcpy(pOutBuf + sizeof(frameSize) + (sizeof(void *) * 2), &(outputInfo.YVirAddr), sizeof(outputInfo.YVirAddr));
-             SEC_OSAL_Memcpy(pOutBuf + sizeof(frameSize) + (sizeof(void *) * 3), &(outputInfo.CVirAddr), sizeof(outputInfo.CVirAddr));*/
+             SEC_OSAL_Memcpy(pOutBuf + sizeof(frameSize) + (sizeof(void *) * 3), &(outputInfo.CVirAddr), sizeof(outputInfo.CVirAddr));
+#endif
         } else {
             SEC_OSAL_Log(SEC_LOG_TRACE, "YUV420 out for ThumbnailMode");
             Y_tile_to_linear_4x2(

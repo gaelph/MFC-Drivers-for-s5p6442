@@ -24,6 +24,9 @@ WITH_WINDOWS_MEDIA:=true
 # Add LDPI assets, in addition to MDPI
   PRODUCT_LOCALES += ldpi mdpi
 
+# Extra overlay for LDPI
+  PRODUCT_PACKAGE_OVERLAYS += vendor/cyanogen/overlay/ldpi
+
 # Broadcom FM radio
 #  $(call inherit-product, vendor/cyanogen/products/bcm_fm_radio.mk)
 
@@ -50,38 +53,47 @@ PRODUCT_COPY_FILES += \
     frameworks/base/data/etc/android.software.sip.voip.xml:system/etc/permissions/android.software.sip.voip.xml \
     packages/wallpapers/LivePicker/android.software.live_wallpaper.xml:system/etc/permissions/android.software.live_wallpaper.xml
 
+# apns config file
+PRODUCT_COPY_FILES += \
+        vendor/cyanogen/prebuilt/common/etc/apns-conf.xml:system/etc/apns-conf.xml
 
 # HAL libs and other system binaries
 PRODUCT_PACKAGES += \
     copybit.GT-I5800 \
+    gralloc.GT-I5800 \
     gps.GT-I5800 \
     sensors.GT-I5800 \
     lights.GT-I5800 \
-    copybit.GT-I5800 \
-    libstagefrighthw \
+    libGLES_fimg \
     brcm_patchram_plus \
     screencap \
-    dexpreopt
+    dexpreopt \
+    libstagefrighthw 
+
+# Samsung Specific tools
+PRODUCT_PACKAGES += \
+    SamsungServiceMode \
+    G3Parts
+
+PRODUCT_PACKAGES += \
+    CMWallpapers \
+    Pacman \
+    Stk \
+    Superuser
 
 #Hardware OMX Codecs
 PRODUCT_PACKAGES += \
     libSEC_OMX_Core.s5p6442 \
     libOMX.SEC.AVC.Decoder.s5p6442 \
-    libOMX.SEC.M4V.Decoder.s5p6442 \
-    libOMX.SEC.AVC.Encoder.s5p6442 \
-    libOMX.SEC.M4V.Encoder.s5p6442
+    libOMX.SEC.M4V.Decoder.s5p6442
 
 PRODUCT_COPY_FILES += \
 	device/samsung/apollo/sec_mm/sec_omx/sec_omx_core/secomxregistry:system/etc/secomxregistry
 
+# Theme packages
 PRODUCT_PACKAGES += \
-    Pacman \
-    Stk \
-    FileManager \
-    Superuser \
-    FM \
-    SamsungServiceMode
-
+    Androidian \
+    Cyanbread 
 
 # Bluetooth MAC Address
 PRODUCT_PACKAGES += \
@@ -93,12 +105,15 @@ PRODUCT_COPY_FILES += \
     device/samsung/apollo/dhcpcd.conf:system/etc/dhcpcd.conf \
     device/samsung/apollo/vold.fstab:system/etc/vold.fstab \
     device/samsung/apollo/dbus.conf:system/etc/dbus.conf \
-    device/samsung/apollo/recovery.fstab:recovery/root/etc/recovery.fstab 
+    device/samsung/apollo/recovery.fstab:recovery/root/etc/recovery.fstab \
+    device/samsung/apollo/Credits-CM.html:system/etc/Credits-CM.html
+
 
 # Live wallpaper packages
 PRODUCT_PACKAGES += \
     LiveWallpapers \
     LiveWallpapersPicker \
+    MagicSmokeWallpapers \
     VisualizationWallpapers \
     librs_jni
 
@@ -128,23 +143,6 @@ PRODUCT_COPY_FILES += \
 	device/samsung/apollo/wifi/wifi.conf:system/etc/wifi/wifi.conf \
 	device/samsung/apollo/wifi/wpa_supplicant.conf:system/etc/wifi/wpa_supplicant.conf 
 
-# camera
-PRODUCT_COPY_FILES += \
-	device/samsung/apollo/prebuilt/camera/libcamera.so:system/lib/libcamera.so \
-	device/samsung/apollo/prebuilt/camera/libsecjpeg.so:system/lib/libsecjpeg.so
-
-# ril
-PRODUCT_COPY_FILES += \
-	device/samsung/apollo/prebuilt/apns-conf.xml:system/etc/apns-conf.xml \
-	device/samsung/apollo/prebuilt/ril/rild:system/bin/rild \
-	device/samsung/apollo/prebuilt/ril/libril.so:system/lib/libril.so \
-	device/samsung/apollo/prebuilt/ril/libsec-ril.so:system/lib/libsec-ril.so
-
-# gps
-PRODUCT_COPY_FILES += \
-	device/samsung/apollo/prebuilt/gps/libsecgps.so:system/lib/libsecgps.so \
-	device/samsung/apollo/prebuilt/gps/libsecril-client.so:system/lib/libsecril-client.so
-
 PRODUCT_PROPERTY_OVERRIDES += \
        wifi.interface=eth0 \
        wifi.supplicant_scan_interval=20 \
@@ -153,7 +151,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
        mobiledata.interfaces=pdp0,eth0,gprs,ppp0 \
        dalvik.vm.dexopt-flags=m=y \
        dalvik.vm.execution-mode=int:jit \
-       dalvik.vm.heapsize=24m \
+       dalvik.vm.heapsize=32m \
        persist.sys.purgeable_assets=0 \
        ro.compcache.default=0 \
        persist.sys.use_dithering=0 \
