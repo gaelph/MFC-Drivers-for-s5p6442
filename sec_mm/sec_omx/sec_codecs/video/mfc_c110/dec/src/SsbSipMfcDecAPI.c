@@ -382,7 +382,7 @@ SSBSIP_MFC_DEC_OUTBUF_STATUS SsbSipMfcDecGetOutBuf(void *openHandle, SSBSIP_MFC_
     output_info->crop_left_offset   = crop_info.crop_left_offset;
     output_info->crop_right_offset  = crop_info.crop_right_offset;
     
-    int aligned_y_size = ALIGN_TO_8KB(ALIGN_TO_128B(pCTX->width) * ALIGN_TO_32B(pCTX->height));
+    int aligned_y_size = pCTX->buf_width * pCTX->buf_height;
     
     /////////////////////////////////////////////////
 	/////           (DeviceIoControl)           /////
