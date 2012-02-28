@@ -1,16 +1,16 @@
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
-ifeq ($(BOARD_USES_HW_RENDER), true)
-	LOCAL_SRC_FILES := \
-		SEC_OMX_Plugin.cpp  \
-		SecHardwareRenderer.cpp \
-		stagefright_overlay_output.cpp \
-		v4l2_utils.c \
-		PostProc.cpp
+ifeq (BOARD_USES_HW_RENDER,true)
+    LOCAL_SRC_FILES := \
+        SEC_OMX_Plugin.cpp  \
+        SecHardwareRenderer.cpp \
+        stagefright_overlay_output.cpp \
+        v4l2_utils.c \
+        PostProc.cpp
 else
-	LOCAL_SRC_FILES := \
-		SEC_OMX_Plugin.cpp
+    LOCAL_SRC_FILES := \
+        SEC_OMX_Plugin.cpp
 endif
 
 LOCAL_CFLAGS += $(PV_CFLAGS_MINUS_VISIBILITY)
