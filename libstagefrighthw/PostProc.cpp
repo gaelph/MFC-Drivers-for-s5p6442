@@ -280,7 +280,7 @@ int PostProc::enableStreaming() {
     LOG_FUNCTION_NAME;
     
     if (!mIsReady) {
-        LOGW("Should not Enable Streaming just yet");
+        LOGI("Postponing Enable Stream");
     } else {
         mIsStreaming = true;
         ret = v4l2_overlay_stream_on(mVideoFd);
