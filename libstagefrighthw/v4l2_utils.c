@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_NDEBUG 0
-#define OVERLAY_DEBUG 1
+//#define LOG_NDEBUG 0
+#define OVERLAY_DEBUG 0
 #define LOG_TAG "v4l2_utils"
 
 #include <fcntl.h>
@@ -314,7 +314,6 @@ int v4l2_overlay_s_fbuf(int fd, int rotation, uint32_t addr)
     if (ret)
         return ret;
 
-    LOGE("fbuf set with address 0x%08x", addr);
     return ret;
 }
 
