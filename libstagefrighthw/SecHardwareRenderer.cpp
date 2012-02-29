@@ -124,14 +124,6 @@ namespace android {
             decodedWidth += 16 - decodedWidth%16;
         }
         
-        mPostProc = new PostProc();
-        if (mPostProc->init(decodedWidth, decodedHeight, colorFormat) < 0) {
-            LOGE("Failed initializing PostProc");
-            return;
-        }
-        
-        mNumBuf = mPostProc->getBufferCount();
-        
         struct rect Orig; 
         Orig.w = mDisplayWidth; 
         Orig.h = mDisplayHeight;
@@ -150,6 +142,14 @@ namespace android {
         }
         
         CHECK(mVideoHeap->heapID() >= 0);
+        
+        mPostProc = new PostProc();
+        if (mPostProc->init(decodedWidth, decodedHeight, colorFormat, mVideoHeap->heapID()) < 0) {
+            LOGE("Failed initializing PostProc");
+            return;
+        }
+        
+        mNumBuf = mPostProc->getBufferCount();
         
         ISurface::BufferHeap bufferHeap(
                                         Dest.w, Dest.h,

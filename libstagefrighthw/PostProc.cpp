@@ -22,6 +22,7 @@
 
 #include "PostProc.h"
 #include "v4l2_utils.h"
+#include "linux/android_pmem.h"
 
 /*****************************************************************************/
 
@@ -156,6 +157,25 @@ static int get_fb_screeninfo(struct frame * frame) {
     return ret;
 }
 
+static int get_pmem_phy_address(int pmem_fd, uint32_t *address) {
+    int ret = 0;
+    int fd = -1;
+    pmem_region region;
+	
+    ret = ioctl(pmem_fd, PMEM_GET_PHYS, &region);
+    if (ret < 0) {
+        LOGE("Couldn't get phy address for pmem render /%d", ret);
+        *address = 0;
+    } else {
+    	*address = region.offset;
+        LOGI("Pmem_render phy address is : 0x%08x", *address);
+    }
+    
+    close(fd);
+    
+    return ret;
+}
+
 /*****************************************************************************/
 
 #if 0
@@ -166,6 +186,7 @@ static int get_fb_screeninfo(struct frame * frame) {
 PostProc::PostProc() : mVideoFd(-1),
                mNumBufs(NUM_BUFFERS),
                mQdBuffers(0),
+               mPhyAddress(0),
                mIsStreaming(false),
                mIsReady(false),
                mNeedsReset(true) {
@@ -175,7 +196,7 @@ PostProc::PostProc() : mVideoFd(-1),
 
 PostProc::~PostProc() {}
 
-int PostProc::init(uint32_t w, uint32_t h, int32_t format) {
+int PostProc::init(uint32_t w, uint32_t h, int32_t format, int pmem_fd) {
     int ret = 0;
     
     LOG_FUNCTION_NAME;
@@ -209,6 +230,9 @@ int PostProc::init(uint32_t w, uint32_t h, int32_t format) {
         goto error;
     }
     
+    ret = get_pmem_phy_address(pmem_fd, &mPhyAddress);
+    if (ret < 0) mPhyAddress = 0;
+    
     mInputFrame.w = w;
     mInputFrame.h = h;
     mInputFrame.format = set_color_space(format);
@@ -225,7 +249,7 @@ int PostProc::init(uint32_t w, uint32_t h, int32_t format) {
         }
     }
     
-    if (v4l2_overlay_init(mVideoFd, w, h, format, 0)) {
+    if (v4l2_overlay_init(mVideoFd, w, h, format, mPhyAddress)) {
         LOGE("Failed initializing overlays\n");
         goto error1;
     }
@@ -347,7 +371,7 @@ int PostProc::setInput(uint32_t w, uint32_t h, int32_t format) {
         }
     }
     
-    ret = v4l2_overlay_init(mVideoFd, w, h, mInputFrame.format, 0);
+    ret = v4l2_overlay_init(mVideoFd, w, h, mInputFrame.format, mPhyAddress);
     if (ret) {
         LOGE("Error initializing overlay");
         goto end;
@@ -406,7 +430,7 @@ int PostProc::setOutput(uint32_t w, uint32_t h, int32_t format, int32_t rotation
         }
         mOutputFrame.rotation = rotation;
     }
-    v4l2_overlay_s_fbuf(mVideoFd, rotation, 0);
+    v4l2_overlay_s_fbuf(mVideoFd, rotation, mPhyAddress);
     
     ret = v4l2_overlay_set_position(mVideoFd, 0, 0 , mOutputFrame.w, mOutputFrame.h, rotation);
     if (ret) {

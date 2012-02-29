@@ -88,13 +88,15 @@ class PostProc {
     bool mIsReady;
     bool mNeedsReset;
     
+    uint32_t mPhyAddress;
+    
     pthread_mutex_t lock;
     pthread_mutexattr_t attr;
     
 public:
     PostProc();
     
-    int init(uint32_t w, uint32_t h, int32_t format);
+    int init(uint32_t w, uint32_t h, int32_t format, int pmem_fd);
     int closePostProc();
     
     int setInput(uint32_t w, uint32_t h, int32_t format);
