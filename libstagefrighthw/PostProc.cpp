@@ -30,7 +30,8 @@
 #pragma mark Defines
 #endif
 
-#define LOG_FUNCTION_NAME LOGV(" %s %s", __FILE__, __func__)
+//#define LOG_FUNCTION_NAME LOGV(" %s %s", __FILE__, __func__)
+#define LOG_FUNCTION_NAME
 
 #define DEFAULT_LCD_WIDTH 240
 #define DEFAULT_LCD_HEIGHT 400
