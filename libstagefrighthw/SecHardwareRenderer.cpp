@@ -41,6 +41,8 @@
 #define LCD_HEIGHT 240
 #define OUTPUT_BPP 16
 
+//#define DEBUG_FPS
+
 struct rect {
     int w;
     int w_stride;
@@ -52,7 +54,6 @@ namespace android {
     
     ////////////////////////////////////////////////////////////////////////////////
     
-    
     static int setRect(struct rect *orig, struct rect *dest) {
         int ret = 0;
         
@@ -60,9 +61,6 @@ namespace android {
         
         float display_aspect = (float)LCD_WIDTH / (float)LCD_HEIGHT;
         float frame_aspect = (float)orig->w / (float)orig->h;
-        
-        LOGD("display aspect %f", display_aspect);
-        LOGD("frame aspect %f", frame_aspect);
         
         bool use_width = (display_aspect < frame_aspect) ? true : false;
         
@@ -77,8 +75,6 @@ namespace android {
             dest->w = LCD_WIDTH;
             dest->w_stride = (LCD_HEIGHT * orig->w) / orig->h;
         }
-        
-        LOGD("setRect = %d %d", dest->w, dest->h);
         
         return ret;
     }
@@ -98,6 +94,8 @@ namespace android {
     mColorFormat(colorFormat),
     mInitCheck(NO_INIT),
     mFrameSize(mDecodedWidth * mDecodedHeight * 2),
+    mFrameCount(0),
+    mStartTime(systemTime()),
     mIsFirstFrame(true),
     mCustomFormat(false),
     mIndex(0) {
@@ -174,7 +172,9 @@ namespace android {
     }
     
     SecHardwareRenderer::~SecHardwareRenderer() {
-        
+#ifdef DEBUG_FPS
+        printFPS();
+#endif
         mISurface->unregisterBuffers();
         if(mMemoryHeap != NULL)
             mMemoryHeap.clear();
@@ -194,6 +194,15 @@ namespace android {
             mOverlay.clear();
         }
     }
+    
+#ifdef DEBUG_FPS
+    void SecHardwareRenderer::printFPS() {
+        nsecs_t now = systemTime();
+        nsecs_t diff = now - mStartTime;
+        float fps = (float)mFrameCount * float(s2ns(1)) / diff;
+        LOGD(">>>>>>>>>>>>>>>> %d Frames, %f FPS <<<<<<<<<<<<<<<<", mFrameCount, fps);
+    }
+#endif
     
     void SecHardwareRenderer::handleYUV420Planar(
                                                  const void *data, size_t size) {
@@ -248,6 +257,14 @@ namespace android {
                 mIsFirstFrame = true;
             } else {
                 mISurface->postBuffer(0);
+#ifdef DEBUG_FPS
+                mFrameCount++;
+                if ((systemTime() - mStartTime) > s2ns(1)) {
+                    printFPS();
+                    mStartTime = systemTime();
+                    mFrameCount = 0;
+                }
+#endif
                 return;
             }
         } else {

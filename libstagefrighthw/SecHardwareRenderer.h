@@ -69,11 +69,15 @@ private:
     int mNumBuf;
     size_t mIndex;
     bool mCustomFormat;
-
+    nsecs_t mStartTime;
+    uint32_t mFrameCount;
 
     SecHardwareRenderer(const SecHardwareRenderer &);
     SecHardwareRenderer &operator=(const SecHardwareRenderer &);
 
+#ifdef DEBUG_FPS
+    void printFPS();
+#endif
     void handleYUV420Planar(const void *, size_t);
 };
 
