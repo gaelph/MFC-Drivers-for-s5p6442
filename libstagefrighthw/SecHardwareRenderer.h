@@ -27,7 +27,7 @@
 #include <binder/MemoryHeapBase.h>
 #include <binder/MemoryHeapPmem.h>
 
-class FIMC;
+class PostProc;
 
 namespace android {
 
@@ -60,7 +60,7 @@ private:
     status_t mInitCheck;
     size_t mFrameSize;
     sp<Overlay> mOverlay;
-    FIMC *mFIMC;
+    PostProc *mPostProc;
     sp<MemoryHeapBase> mVideoHeap;
     sp<MemoryHeapPmem> mRenderPmem;
     sp<MemoryHeapBase> mMemoryHeap;

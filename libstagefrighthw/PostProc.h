@@ -75,7 +75,7 @@ struct frame {
 #pragma mark FIMC_Class
 #endif
 
-class FIMC {
+class PostProc {
     int mVideoFd;
     
     uint32_t mNumBufs;
@@ -92,10 +92,10 @@ class FIMC {
     pthread_mutexattr_t attr;
     
 public:
-    FIMC();
+    PostProc();
     
     int init(uint32_t w, uint32_t h, int32_t format);
-    int closeFIMC();
+    int closePostProc();
     
     int setInput(uint32_t w, uint32_t h, int32_t format);
     int setOutput(uint32_t w, uint32_t h, int32_t format, int32_t rotation);
@@ -106,7 +106,7 @@ public:
     int getBufferCount();
     
 protected:
-    ~FIMC();
+    ~PostProc();
     
 private:
     int enableStreaming();

@@ -160,10 +160,10 @@ static int get_fb_screeninfo(struct frame * frame) {
 
 #if 0
 #pragma mark -
-#pragma mark Class FIMC
+#pragma mark Class PostProc
 #endif
 
-FIMC::FIMC() : mVideoFd(-1),
+PostProc::PostProc() : mVideoFd(-1),
                mNumBufs(NUM_BUFFERS),
                mQdBuffers(0),
                mIsStreaming(false),
@@ -173,9 +173,9 @@ FIMC::FIMC() : mVideoFd(-1),
     memset(&mOutputFrame, 0, sizeof(mOutputFrame));
 }
 
-FIMC::~FIMC() {}
+PostProc::~PostProc() {}
 
-int FIMC::init(uint32_t w, uint32_t h, int32_t format) {
+int PostProc::init(uint32_t w, uint32_t h, int32_t format) {
     int ret = 0;
     
     LOG_FUNCTION_NAME;
@@ -251,7 +251,7 @@ int FIMC::init(uint32_t w, uint32_t h, int32_t format) {
         mOutputFrame.h = DEFAULT_LCD_HEIGHT;
     }
     
-    LOGI("Successfully Opened FIMC Device");
+    LOGI("Successfully Opened PostProc Device");
     return ret;
 
 error1:
@@ -260,7 +260,7 @@ error:
     return -1;
 }
 
-int FIMC::closeFIMC() {
+int PostProc::closePostProc() {
     LOG_FUNCTION_NAME;
     
     if (pthread_mutex_destroy(&lock)) {
@@ -274,7 +274,7 @@ int FIMC::closeFIMC() {
     return close(mVideoFd);
 }
 
-int FIMC::enableStreaming() {
+int PostProc::enableStreaming() {
     int ret = 0;
     
     LOG_FUNCTION_NAME;
@@ -293,7 +293,7 @@ int FIMC::enableStreaming() {
     return ret;
 }
 
-int FIMC::disableStreaming() {
+int PostProc::disableStreaming() {
     int ret = 0;
     
     LOG_FUNCTION_NAME;
@@ -311,7 +311,7 @@ int FIMC::disableStreaming() {
     return ret;
 }
 
-int FIMC::setInput(uint32_t w, uint32_t h, int32_t format) {
+int PostProc::setInput(uint32_t w, uint32_t h, int32_t format) {
     LOG_FUNCTION_NAME;
     
     int ret = 0;
@@ -372,7 +372,7 @@ end:
     return ret;
 }
 
-int FIMC::setOutput(uint32_t w, uint32_t h, int32_t format, int32_t rotation) {
+int PostProc::setOutput(uint32_t w, uint32_t h, int32_t format, int32_t rotation) {
     LOG_FUNCTION_NAME;
     
     int ret = 0;
@@ -421,7 +421,7 @@ end:
     return ret;
 }
 
-int FIMC::queueBuffer(void *buffer) {
+int PostProc::queueBuffer(void *buffer) {
     LOG_FUNCTION_NAME;
     
     int ret = 0;
@@ -447,7 +447,7 @@ int FIMC::queueBuffer(void *buffer) {
     return ret;
 }
 
-int FIMC::dequeueBuffer(void **buffer) {
+int PostProc::dequeueBuffer(void **buffer) {
     LOG_FUNCTION_NAME;
     
     int ret = 0;
@@ -478,7 +478,7 @@ int FIMC::dequeueBuffer(void **buffer) {
     return ret;
 }
 
-int FIMC::getBufferCount() {
+int PostProc::getBufferCount() {
     LOG_FUNCTION_NAME;
     return mNumBufs;
 }

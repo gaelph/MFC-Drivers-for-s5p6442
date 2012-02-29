@@ -43,7 +43,9 @@
 
 struct rect {
     int w;
+    int w_stride;
     int h;
+    int h_stride;
 };
 
 namespace android {
@@ -66,15 +68,14 @@ namespace android {
         
         if (use_width) {    
             dest->w = LCD_WIDTH;
-            dest->h = (LCD_WIDTH * orig->h) / orig->w;
+            dest->h = LCD_HEIGHT;
+            dest->w_stride = dest->w;
+            dest->h_stride = (LCD_WIDTH * orig->h) / orig->w;
         } else {
             dest->h = LCD_HEIGHT;
+            dest->h_stride = LCD_HEIGHT;
             dest->w = LCD_WIDTH;
-        }
-        
-        if (orig->w <= 0 || orig->h <= 0) {
-            orig->w = 16;
-            orig->h = 10;
+            dest->w_stride = (LCD_HEIGHT * orig->w) / orig->h;
         }
         
         LOGD("setRect = %d %d", dest->w, dest->h);
@@ -101,19 +102,9 @@ namespace android {
     mCustomFormat(false),
     mIndex(0) {
         
-        mVideoHeap = new MemoryHeapBase("/dev/pmem_render", mFrameSize * 2);
-        if (mVideoHeap->heapID() < 0) {
-            LOGI("Creating physical memory over pmem_render failed");
-        } else {
-            mRenderPmem = new MemoryHeapPmem(mVideoHeap);
-            mRenderPmem->slap();
-            mVideoHeap = mRenderPmem;
-        }
-        
         CHECK(mISurface.get() != NULL);
         CHECK(mDecodedWidth > 0);
         CHECK(mDecodedHeight > 0);
-        CHECK(mVideoHeap->heapID() >= 0);
         
         if (colorFormat != OMX_COLOR_FormatCbYCrY
             && colorFormat != OMX_COLOR_FormatYUV420Planar
@@ -131,13 +122,17 @@ namespace android {
             default: orientation = ISurface::BufferHeap::ROT_0; break;
         }
         
-        mFIMC = new FIMC();
-        if (mFIMC->init(decodedWidth, decodedHeight, colorFormat) < 0) {
-            LOGE("Failed initializing FIMC");
+        if (decodedWidth%16 != 0) {
+            decodedWidth += 16 - decodedWidth%16;
+        }
+        
+        mPostProc = new PostProc();
+        if (mPostProc->init(decodedWidth, decodedHeight, colorFormat) < 0) {
+            LOGE("Failed initializing PostProc");
             return;
         }
         
-        mNumBuf = mFIMC->getBufferCount();
+        mNumBuf = mPostProc->getBufferCount();
         
         struct rect Orig; 
         Orig.w = mDisplayWidth; 
@@ -147,9 +142,20 @@ namespace android {
         
         setRect(&Orig, &Dest);
         
+        mVideoHeap = new MemoryHeapBase("/dev/pmem_render", Dest.w * Dest.h * 2);
+        if (mVideoHeap->heapID() < 0) {
+            LOGI("Creating physical memory over pmem_render failed");
+        } else {
+            mRenderPmem = new MemoryHeapPmem(mVideoHeap);
+            mRenderPmem->slap();
+            mVideoHeap = mRenderPmem;
+        }
+        
+        CHECK(mVideoHeap->heapID() >= 0);
+        
         ISurface::BufferHeap bufferHeap(
                                         Dest.w, Dest.h,
-                                        Dest.w, Dest.h,
+                                        Dest.w_stride, Dest.h_stride,
                                         PIXEL_FORMAT_RGB_565,
                                         mVideoHeap);
         
@@ -162,7 +168,7 @@ namespace android {
         mFrameSize = 32;
         mMemoryHeap = new MemoryHeapBase(mNumBuf * mFrameSize);
         
-        mFIMC->setOutput(Dest.w, Dest.h, OUTPUT_BPP, 0);
+        mPostProc->setOutput(Dest.w, Dest.h, OUTPUT_BPP, 0);
         
         mInitCheck = err;
     }
@@ -181,7 +187,7 @@ namespace android {
         if (mVideoHeap != NULL)
             mVideoHeap.clear();
         
-        mFIMC->closeFIMC();
+        mPostProc->closePostProc();
         
         if (mOverlay.get() != NULL) {
             mOverlay->destroy();
@@ -223,9 +229,9 @@ namespace android {
             handleYUV420Planar(data, size);
         }
         
-        if (mFIMC->queueBuffer(dst) == ALL_BUFFERS_FLUSHED) {
+        if (mPostProc->queueBuffer(dst) == ALL_BUFFERS_FLUSHED) {
             mIsFirstFrame = true;
-            if (mFIMC->queueBuffer((void *)dst) != 0) {
+            if (mPostProc->queueBuffer((void *)dst) != 0) {
                 LOGV("QueueBuffer Failure");
                 return;
             }
@@ -237,7 +243,7 @@ namespace android {
         
         overlay_buffer_t overlay_buffer;
         if (!mIsFirstFrame) {
-            status_t err = mFIMC->dequeueBuffer(&overlay_buffer);
+            status_t err = mPostProc->dequeueBuffer(&overlay_buffer);
             if (err == ALL_BUFFERS_FLUSHED) {
                 mIsFirstFrame = true;
             } else {
